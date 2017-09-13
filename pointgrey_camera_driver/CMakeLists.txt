@@ -78,12 +78,18 @@ target_link_libraries(pointgrey_list_cameras PointGreyCamera ${catkin_LIBRARIES}
 set_target_properties(pointgrey_list_cameras
                       PROPERTIES OUTPUT_NAME list_cameras PREFIX "")
 
+add_executable(pointgrey_ip_config src/ip_config.cpp)
+target_link_libraries(pointgrey_ip_config PointGreyCamera ${catkin_LIBRARIES})
+set_target_properties(pointgrey_ip_config
+                      PROPERTIES OUTPUT_NAME ip_config PREFIX "")
+
 install(TARGETS
   PointGreyCamera
   PointGreyCameraNodelet
   PointGreyStereoCameraNodelet
   pointgrey_camera_node
   pointgrey_list_cameras
+  pointgrey_ip_config
   pointgrey_stereo_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
