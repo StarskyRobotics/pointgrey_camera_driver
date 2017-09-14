@@ -44,6 +44,7 @@
  @attention Carnegie Mellon University
  */
 
+#include <stdio.h>
 #include <flycapture/FlyCapture2.h>
 #include <iostream>
 #include <string>
@@ -51,6 +52,7 @@
 //#include <socket.h>
 #include <arpa/inet.h>
 #include <map>
+#include <unistd.h>
 
 using namespace FlyCapture2;
 
@@ -122,21 +124,29 @@ void assignIPs() {
 	std::cout << "Forcing IPs..." << std::endl;
 	PGERROR(bus_manager.ForceAllIPAddressesAutomatically(),
 			"Failed to force IPs");
+    std::cout << "Sleeping..." << std::endl;
+    sleep(3);
+    std::cout << "Rescanning..." << std::endl;
+	PGERROR(bus_manager.RescanBus(),
+			"Failed to rescan");
 }
 
 #define REG_IP_ADDRESS 0x64c
 #define REG_GATEWAY 0x66c
 
 unsigned int ip2uint(IPAddress ip) {
-	return ip.octets[3]<<24 + ip.octets[2]<<16 + ip.octets[1]<<8 + ip.octets[0];
+	return (((unsigned int)ip.octets[0])<<24) 
+        + (((unsigned int)ip.octets[1])<<16) 
+        + (((unsigned int)ip.octets[2])<<8) 
+        + (((unsigned int)ip.octets[3])<<0);
 }
 
 IPAddress uint2ip(unsigned int ui) {
 	IPAddress ip;
-	ip.octets[0] = ui & 0xff;
-	ip.octets[1] = (ui>>8) & 0xff;
-	ip.octets[2] = (ui>>16) & 0xff;
-	ip.octets[3] = (ui>>24) & 0xff;
+	ip.octets[3] = ui & 0xff;
+	ip.octets[2] = (ui>>8) & 0xff;
+	ip.octets[1] = (ui>>16) & 0xff;
+	ip.octets[0] = (ui>>24) & 0xff;
 	return ip;
 }
 
@@ -163,19 +173,37 @@ void storeIPs() {
 				PGERROR(camera.GetCameraInfo(&cinfo),
 						"Failed to get camera info");
 
-				unsigned int ui;
+				unsigned int ip_u, gw_u;
 
-				camera.ReadGVCPRegister(REG_IP_ADDRESS, &ui);
-				IPAddress ip = uint2ip(ui);
+				camera.ReadGVCPRegister(REG_IP_ADDRESS, &ip_u);
+				IPAddress ip = uint2ip(ip_u);
 
-				camera.ReadGVCPRegister(REG_GATEWAY, &ui);
-				IPAddress gw = uint2ip(ui);
+				camera.ReadGVCPRegister(REG_GATEWAY, &gw_u);
+				IPAddress gw = uint2ip(gw_u);
+
+                IPAddress gw_new = cinfo.ipAddress;
+                gw_new.octets[3] = 1;
 
 				std::cout << "[" << i << "]";
 				std::cout << "IP register: " << ip2str(ip) << " GW: " << ip2str(gw) << std::endl;
+                printf("IP reg hex: %08x %08x\n", ip_u, gw_u);
+                std::cout << "Writing: " << ip2str(cinfo.ipAddress) << std::endl;
+                printf("Writing hex: %08x %08x\n", ip2uint(cinfo.ipAddress), ip2uint(gw_new));
 
-				camera.WriteGVCPRegister(REG_IP_ADDRESS, ip2uint(cinfo.ipAddress), true);
-				camera.WriteGVCPRegister(REG_GATEWAY, ip2uint(cinfo.defaultGateway), true);
+
+				camera.WriteGVCPRegister(REG_IP_ADDRESS, ip2uint(cinfo.ipAddress));
+				camera.WriteGVCPRegister(REG_GATEWAY, ip2uint(gw_new));
+                std::cout << "After writing: "<<std::endl;
+
+				camera.ReadGVCPRegister(REG_IP_ADDRESS, &ip_u);
+				ip = uint2ip(ip_u);
+
+				camera.ReadGVCPRegister(REG_GATEWAY, &gw_u);
+				gw = uint2ip(gw_u);
+
+				std::cout << "[" << i << "]";
+				std::cout << "IP register2: " << ip2str(ip) << " GW: " << ip2str(gw) << std::endl;
+                printf("IP register2 hex: %08x %08x\n", ip_u, gw_u);
 			}
 		} else {
 			// No cameras found
