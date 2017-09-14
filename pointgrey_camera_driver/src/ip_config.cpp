@@ -132,6 +132,7 @@ void assignIPs() {
 }
 
 #define REG_IP_ADDRESS 0x64c
+#define REG_MASK 0x65c
 #define REG_GATEWAY 0x66c
 
 unsigned int ip2uint(IPAddress ip) {
@@ -149,6 +150,11 @@ IPAddress uint2ip(unsigned int ui) {
 	ip.octets[0] = (ui>>24) & 0xff;
 	return ip;
 }
+
+#define REG_NET 0x0014
+#define NET_LLA (1<<29)
+#define NET_DHCP (1<<30)
+#define NET_PERSISTANT (1<<31)
 
 void storeIPs() {
 	std::cout << "Saving IPs..." << std::endl;
@@ -184,6 +190,12 @@ void storeIPs() {
                 IPAddress gw_new = cinfo.ipAddress;
                 gw_new.octets[3] = 1;
 
+                IPAddress mask;
+                mask.octets[0] = 0xff;
+                mask.octets[1] = 0xff;
+                mask.octets[2] = 0xff;
+                mask.octets[3] = 0;
+
 				std::cout << "[" << i << "]";
 				std::cout << "IP register: " << ip2str(ip) << " GW: " << ip2str(gw) << std::endl;
                 printf("IP reg hex: %08x %08x\n", ip_u, gw_u);
@@ -192,7 +204,11 @@ void storeIPs() {
 
 
 				camera.WriteGVCPRegister(REG_IP_ADDRESS, ip2uint(cinfo.ipAddress));
+				camera.WriteGVCPRegister(REG_MASK, ip2uint(mask));
 				camera.WriteGVCPRegister(REG_GATEWAY, ip2uint(gw_new));
+
+                printf("Setting net reg to all\n");
+				camera.WriteGVCPRegister(0x14, 0xffffffff);
                 std::cout << "After writing: "<<std::endl;
 
 				camera.ReadGVCPRegister(REG_IP_ADDRESS, &ip_u);
