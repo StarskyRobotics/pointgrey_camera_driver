@@ -58,7 +58,7 @@ using namespace FlyCapture2;
 
 std::string ip2str(const IPAddress& ip) {
 	char str[INET_ADDRSTRLEN];
-	inet_ntop(AF_INET, ip.octets, str, INET_ADDRSTRLEN);
+	sprintf(str, "%d.%d.%d.%d", ip.octets[0],ip.octets[1],ip.octets[2],ip.octets[3]);
 	std::string ss = str;
 	return ss;
 }
@@ -131,6 +131,15 @@ unsigned int ip2uint(IPAddress ip) {
 	return ip.octets[3]<<24 + ip.octets[2]<<16 + ip.octets[1]<<8 + ip.octets[0];
 }
 
+IPAddress uint2ip(unsigned int ui) {
+	IPAddress ip;
+	ip.octets[0] = ui & 0xff;
+	ip.octets[1] = (ui>>8) & 0xff;
+	ip.octets[2] = (ui>>16) & 0xff;
+	ip.octets[3] = (ui>>24) & 0xff;
+	return ip;
+}
+
 void storeIPs() {
 	std::cout << "Saving IPs..." << std::endl;
 	try {
@@ -154,11 +163,13 @@ void storeIPs() {
 				PGERROR(camera.GetCameraInfo(&cinfo),
 						"Failed to get camera info");
 
-				IPAddress ip;
-				camera.ReadRegister(REG_IP_ADDRESS, (unsigned int *)&ip.octets);
+				unsigned int ui;
 
-				IPAddress gw;
-				camera.ReadRegister(REG_GATEWAY, (unsigned int *)&gw.octets);
+				camera.ReadRegister(REG_IP_ADDRESS, &ui);
+				IPAddress ip = uint2ip(ui);
+
+				camera.ReadRegister(REG_GATEWAY, &ui);
+				IPAddress gw = uint2ip(ui);
 
 				std::cout << "[" << i << "]";
 				std::cout << "IP register: " << ip2str(ip) << " GW: " << ip2str(gw) << std::endl;
