@@ -165,17 +165,17 @@ void storeIPs() {
 
 				unsigned int ui;
 
-				camera.ReadRegister(REG_IP_ADDRESS, &ui);
+				camera.ReadGVCPRegister(REG_IP_ADDRESS, &ui);
 				IPAddress ip = uint2ip(ui);
 
-				camera.ReadRegister(REG_GATEWAY, &ui);
+				camera.ReadGVCPRegister(REG_GATEWAY, &ui);
 				IPAddress gw = uint2ip(ui);
 
 				std::cout << "[" << i << "]";
 				std::cout << "IP register: " << ip2str(ip) << " GW: " << ip2str(gw) << std::endl;
 
-				camera.WriteRegister(REG_IP_ADDRESS, ip2uint(cinfo.ipAddress), true);
-				camera.WriteRegister(REG_GATEWAY, ip2uint(cinfo.defaultGateway), true);
+				camera.WriteGVCPRegister(REG_IP_ADDRESS, ip2uint(cinfo.ipAddress), true);
+				camera.WriteGVCPRegister(REG_GATEWAY, ip2uint(cinfo.defaultGateway), true);
 			}
 		} else {
 			// No cameras found
