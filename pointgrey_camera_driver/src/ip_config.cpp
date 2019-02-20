@@ -53,10 +53,11 @@
 #include <arpa/inet.h>
 #include <map>
 #include <unistd.h>
+#include <exception>
 
 using namespace FlyCapture2;
 
-#define PGERROR(error, msg) PointGreyCamera::handleError(msg, error)
+#define PGERROR(error, msg) try { PointGreyCamera::handleError(msg, error); } catch (const std::runtime_error& e) { std::cerr << "Exception: " << e.what() << std::endl; }
 
 std::string ip2str(const IPAddress& ip) {
 	char str[INET_ADDRSTRLEN];
@@ -181,10 +182,10 @@ void storeIPs() {
 
 				unsigned int ip_u, gw_u;
 
-				camera.ReadGVCPRegister(REG_IP_ADDRESS, &ip_u);
+				PGERROR(camera.ReadGVCPRegister(REG_IP_ADDRESS, &ip_u), "Failed to read IP register");
 				IPAddress ip = uint2ip(ip_u);
 
-				camera.ReadGVCPRegister(REG_GATEWAY, &gw_u);
+				PGERROR(camera.ReadGVCPRegister(REG_GATEWAY, &gw_u), "Failed to read GW register");
 				IPAddress gw = uint2ip(gw_u);
 
                 IPAddress gw_new = cinfo.ipAddress;
@@ -203,18 +204,18 @@ void storeIPs() {
                 printf("Writing hex: %08x %08x\n", ip2uint(cinfo.ipAddress), ip2uint(gw_new));
 
 
-				camera.WriteGVCPRegister(REG_IP_ADDRESS, ip2uint(cinfo.ipAddress));
-				camera.WriteGVCPRegister(REG_MASK, ip2uint(mask));
-				camera.WriteGVCPRegister(REG_GATEWAY, ip2uint(gw_new));
+                PGERROR(camera.WriteGVCPRegister(REG_IP_ADDRESS, ip2uint(cinfo.ipAddress)), "Failed to write IP register");
+                PGERROR(camera.WriteGVCPRegister(REG_MASK, ip2uint(mask)), "Failed to write Mask register");
+                PGERROR(camera.WriteGVCPRegister(REG_GATEWAY, ip2uint(gw_new)), "Failed to write GW register");
 
                 printf("Setting net reg to all\n");
-				camera.WriteGVCPRegister(0x14, 0xffffffff);
+				PGERROR(camera.WriteGVCPRegister(0x14, 0xffffffff), "Failed to write net register");
                 std::cout << "After writing: "<<std::endl;
 
-				camera.ReadGVCPRegister(REG_IP_ADDRESS, &ip_u);
+                PGERROR(camera.ReadGVCPRegister(REG_IP_ADDRESS, &ip_u), "Failed to read IP register");
 				ip = uint2ip(ip_u);
 
-				camera.ReadGVCPRegister(REG_GATEWAY, &gw_u);
+				PGERROR(camera.ReadGVCPRegister(REG_GATEWAY, &gw_u), "Failed to read GW register");
 				gw = uint2ip(gw_u);
 
 				std::cout << "[" << i << "]";
